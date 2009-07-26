@@ -107,7 +107,7 @@ typedef enum {
 } NMWifiError;
 
 #define NM_WIFI_ERROR (nm_wifi_error_quark ())
-#define NM_TYPE_WIFI_ERROR (nm_wifi_error_get_type ()) 
+#define NM_TYPE_WIFI_ERROR (nm_wifi_error_get_type ())
 
 typedef struct SupplicantStateTask {
 	NMDeviceWifi *self;
@@ -171,6 +171,7 @@ struct _NMDeviceWifiPrivate {
 	guint8            we_version;
 	guint32           capabilities;
 	gboolean          has_scan_capa_ssid;
+	gboolean          is_nl80211;
 };
 
 static guint32 nm_device_wifi_get_frequency (NMDeviceWifi *self);
@@ -406,11 +407,28 @@ out:
                   NM_WIFI_DEVICE_CAP_WPA | \
                   NM_WIFI_DEVICE_CAP_RSN)
 
+static gboolean
+is_device_nl80211 (NMDeviceWifi *self)
+{
+	const char * iface;
+	gchar * path;
+	gboolean result;
+
+	iface = nm_device_get_iface (NM_DEVICE (self));
+	path = g_strdup_printf("/sys/class/net/%s/phy80211", iface);
+
+	result = access (path, F_OK) ? FALSE : TRUE;
+
+	g_free (path);
+	return result;
+}
+
 static guint32
 get_wireless_capabilities (NMDeviceWifi *self,
                            iwrange * range,
                            guint32 data_len)
 {
+	NMDeviceWifiPrivate *priv;
 	guint32 minlen;
 	guint32 caps = NM_WIFI_DEVICE_CAP_NONE;
 	const char * iface;
@@ -418,6 +436,7 @@ get_wireless_capabilities (NMDeviceWifi *self,
 	g_return_val_if_fail (self != NULL, NM_WIFI_DEVICE_CAP_NONE);
 	g_return_val_if_fail (range != NULL, NM_WIFI_DEVICE_CAP_NONE);
 
+	priv = NM_DEVICE_WIFI_GET_PRIVATE (self);
 	iface = nm_device_get_iface (NM_DEVICE (self));
 
 	minlen = ((char *) &range->enc_capa) - (char *) range + sizeof (range->enc_capa);
@@ -454,6 +473,10 @@ get_wireless_capabilities (NMDeviceWifi *self,
 			caps &= ~WPA_CAPS;
 		}
 	}
+
+	/* Check for Access Point mode support */
+	if (priv->is_nl80211)
+		caps |= NM_WIFI_DEVICE_CAP_MODE_MASTER;
 
 	return caps;
 }
@@ -550,6 +573,9 @@ constructor (GType type,
 		         scan_capa_range->scan_capa);
 	}
 
+	/* Check if device uses nl80211 driver */
+	priv->is_nl80211 = is_device_nl80211 (self);
+
 	/* 802.11 wireless-specific capabilities */
 	priv->capabilities = get_wireless_capabilities (self, &range, response_len);
 
@@ -583,7 +609,7 @@ supplicant_interface_acquire (NMDeviceWifi *self)
 
 	priv->supplicant.iface = nm_supplicant_manager_get_iface (priv->supplicant.mgr,
 	                                                          nm_device_get_iface (NM_DEVICE (self)),
-	                                                          TRUE);
+	                                                          TRUE, priv->is_nl80211);
 	if (priv->supplicant.iface == NULL) {
 		nm_warning ("Couldn't initialize supplicant interface for %s.",
 		            nm_device_get_iface (NM_DEVICE (self)));
@@ -1294,6 +1320,9 @@ nm_device_wifi_get_mode (NMDeviceWifi *self)
 		case IW_MODE_INFRA:
 			mode = NM_802_11_MODE_INFRA;
 			break;
+		case IW_MODE_MASTER:
+			mode = NM_802_11_MODE_MASTER;
+			break;
 		default:
 			break;
 		}
@@ -1339,6 +1368,9 @@ nm_device_wifi_set_mode (NMDeviceWifi *self, const NM80211Mode mode)
 		break;
 	case NM_802_11_MODE_INFRA:
 		wrq.u.mode = IW_MODE_INFRA;
+		break;
+	case NM_802_11_MODE_MASTER:
+		wrq.u.mode = IW_MODE_MASTER;
 		break;
 	default:
 		goto out;
@@ -1424,7 +1456,7 @@ max_qual->updated);
 #endif
 
 	/* Try using the card's idea of the signal quality first as long as it tells us what the max quality is.
-	 * Drivers that fill in quality values MUST treat them as percentages, ie the "Link Quality" MUST be 
+	 * Drivers that fill in quality values MUST treat them as percentages, ie the "Link Quality" MUST be
 	 * bounded by 0 and max_qual->qual, and MUST change in a linear fashion.  Within those bounds, drivers
 	 * are free to use whatever they want to calculate "Link Quality".
 	 */
@@ -1856,7 +1888,7 @@ ap_auth_enforced (NMConnection *connection,
 		/* No way to tell if the key is wrong with Open System
 		 * auth mode in WEP.  Auth is not enforced like Shared Key.
 		 */
-		s_wireless_sec = (NMSettingWirelessSecurity *) nm_connection_get_setting (connection, 
+		s_wireless_sec = (NMSettingWirelessSecurity *) nm_connection_get_setting (connection,
 																    NM_TYPE_SETTING_WIRELESS_SECURITY);
 		if (s_wireless_sec) {
 			auth_alg = nm_setting_wireless_security_get_auth_alg (s_wireless_sec);
@@ -2164,7 +2196,7 @@ link_timeout_cb (gpointer user_data)
 		if (!setting_name)
 			goto time_out;
 
-		/* Association/authentication failed during association, probably have a 
+		/* Association/authentication failed during association, probably have a
 		 * bad encryption key and the authenticating entity (AP, RADIUS server, etc)
 		 * denied the association due to bad credentials.
 		 */
@@ -2685,7 +2717,7 @@ build_supplicant_config (NMDeviceWifi *self,
 	NMSupplicantConfig *config = NULL;
 	NMSettingWireless *s_wireless;
 	NMSettingWirelessSecurity *s_wireless_sec;
-	guint32 adhoc_freq = 0;
+	guint32 freq = 0;
 
 	g_return_val_if_fail (self != NULL, NULL);
 
@@ -2696,35 +2728,38 @@ build_supplicant_config (NMDeviceWifi *self,
 	if (!config)
 		return NULL;
 
-	/* Figure out the Ad-Hoc frequency to use if creating an adhoc network; if
-	 * nothing was specified then pick something usable.
+	/* Figure out the Ad-Hoc frequency to use if creating an adhoc network or
+	 * setting device in Access Point mode; if nothing was specified then
+	 * pick something usable.
 	 */
-	if ((nm_ap_get_mode (ap) == NM_802_11_MODE_ADHOC) && nm_ap_get_user_created (ap)) {
+	if ((nm_ap_get_mode (ap) == NM_802_11_MODE_ADHOC ||
+			nm_ap_get_mode (ap) == NM_802_11_MODE_MASTER) &&
+			nm_ap_get_user_created (ap)) {
 		const char *band = nm_setting_wireless_get_band (s_wireless);
 
-		adhoc_freq = nm_ap_get_freq (ap);
-		if (!adhoc_freq) {
+		freq = nm_ap_get_freq (ap);
+		if (!freq) {
 			if (band && !strcmp (band, "a")) {
 				guint32 a_freqs[] = {5180, 5200, 5220, 5745, 5765, 5785, 5805, 0};
-				adhoc_freq = find_supported_frequency (self, a_freqs);
+				freq = find_supported_frequency (self, a_freqs);
 			} else {
 				guint32 bg_freqs[] = {2412, 2437, 2462, 2472, 0};
-				adhoc_freq = find_supported_frequency (self, bg_freqs);
+				freq = find_supported_frequency (self, bg_freqs);
 			}
 		}
 
-		if (!adhoc_freq) {
+		if (!freq) {
 			if (band && !strcmp (band, "a"))
-				adhoc_freq = 5180;
+				freq = 5180;
 			else
-				adhoc_freq = 2462;
+				freq = 2462;
 		}
 	}
 
 	if (!nm_supplicant_config_add_setting_wireless (config,
 	                                                s_wireless,
 	                                                nm_ap_get_broadcast (ap),
-	                                                adhoc_freq,
+	                                                freq,
 	                                                priv->has_scan_capa_ssid)) {
 		nm_warning ("Couldn't add 802-11-wireless setting to supplicant config.");
 		goto error;
@@ -2836,6 +2871,7 @@ real_act_stage1_prepare (NMDevice *dev, NMDeviceStateReason *reason)
 		g_return_val_if_fail (ap != NULL, NM_ACT_STAGE_RETURN_FAILURE);
 
 		switch (nm_ap_get_mode (ap)) {
+			case NM_802_11_MODE_MASTER:
 			case NM_802_11_MODE_ADHOC:
 				nm_ap_set_user_created (ap, TRUE);
 				break;

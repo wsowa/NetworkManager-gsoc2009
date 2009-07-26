@@ -119,7 +119,8 @@ GType nm_supplicant_interface_get_type (void);
 
 NMSupplicantInterface * nm_supplicant_interface_new (NMSupplicantManager * smgr,
                                                      const char *ifname,
-                                                     gboolean is_wireless);
+                                                     gboolean is_wireless,
+                                                     gboolean is_nl80211);
 
 gboolean nm_supplicant_interface_set_config (NMSupplicantInterface * iface,
                                              NMSupplicantConfig * cfg);

@@ -102,8 +102,9 @@ typedef struct
 	NMSupplicantManager * smgr;
 	gulong                smgr_state_sig_handler;
 	NMDBusManager *       dbus_mgr;
-	char *                dev;
+	char *               dev;
 	gboolean              is_wireless;
+	gboolean              is_nl80211;
 
 	char *                object_path;
 	guint32               state;
@@ -186,7 +187,7 @@ nm_supplicant_info_destroy (gpointer user_data)
 
 
 NMSupplicantInterface *
-nm_supplicant_interface_new (NMSupplicantManager * smgr, const char *ifname, gboolean is_wireless)
+nm_supplicant_interface_new (NMSupplicantManager * smgr, const char *ifname, gboolean is_wireless, gboolean is_nl80211)
 {
 	NMSupplicantInterface * iface;
 
@@ -199,6 +200,7 @@ nm_supplicant_interface_new (NMSupplicantManager * smgr, const char *ifname, gbo
 	                      NULL);
 	if (iface) {
 		NM_SUPPLICANT_INTERFACE_GET_PRIVATE (iface)->is_wireless = is_wireless;
+		NM_SUPPLICANT_INTERFACE_GET_PRIVATE (iface)->is_nl80211 = is_nl80211;
 		nm_supplicant_interface_start (iface);
 	}
 
@@ -234,7 +236,7 @@ nm_supplicant_interface_set_property (GObject *      object,
 		case PROP_SUPPLICANT_MANAGER:
 			priv->smgr = NM_SUPPLICANT_MANAGER (g_value_get_object (value));
 			g_object_ref (G_OBJECT (priv->smgr));
-			
+
 			id = g_signal_connect (priv->smgr,
 			                       "state",
 			                       G_CALLBACK (nm_supplicant_interface_smgr_state_changed),
@@ -297,7 +299,7 @@ try_remove_iface (DBusGConnection *g_connection,
 	if (!proxy)
 		return;
 
-	dbus_g_proxy_call_no_reply (proxy, "removeInterface", 
+	dbus_g_proxy_call_no_reply (proxy, "removeInterface",
 	                            DBUS_TYPE_G_OBJECT_PATH, path,
 	                            G_TYPE_INVALID);
 	g_object_unref (proxy);
@@ -380,7 +382,7 @@ nm_supplicant_interface_class_init (NMSupplicantInterfaceClass *klass)
 	                                                      "Supplicant manager to which this interface belongs",
 	                                                      NM_TYPE_SUPPLICANT_MANAGER,
 	                                                      G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
-  
+
 	g_object_class_install_property (object_class,
 	                                 PROP_DEVICE,
 	                                 g_param_spec_string ("device",
@@ -582,7 +584,7 @@ request_scan_results (gpointer user_data)
 
 	info = nm_supplicant_info_new (self, priv->iface_proxy, priv->other_pcalls);
 	call = dbus_g_proxy_begin_call (priv->iface_proxy, "scanResults",
-	                                scan_results_cb, 
+	                                scan_results_cb,
 	                                info,
 	                                nm_supplicant_info_destroy,
 	                                G_TYPE_INVALID);
@@ -851,10 +853,18 @@ nm_supplicant_interface_add_to_supplicant (NMSupplicantInterface * self,
 	} else {
 		GHashTable *hash = g_hash_table_new (g_str_hash, g_str_equal);
 		GValue *driver;
+		const char * driver_name;
+
+		if (priv->is_wireless) {
+			driver_name = priv->is_nl80211 ? "nl80211" : "wext";
+		}
+		else {
+			driver_name = "wired";
+		}
 
 		driver = g_new0 (GValue, 1);
 		g_value_init (driver, G_TYPE_STRING);
-		g_value_set_string (driver, priv->is_wireless ? "wext" : "wired");
+		g_value_set_string (driver, driver_name);
 		g_hash_table_insert (hash, "driver", driver);
 
 		call = dbus_g_proxy_begin_call (proxy, "addInterface",
@@ -1265,7 +1275,7 @@ nm_supplicant_interface_set_config (NMSupplicantInterface * self,
 	priv = NM_SUPPLICANT_INTERFACE_GET_PRIVATE (self);
 
 	nm_supplicant_interface_disconnect (self);
-	
+
 	if (priv->cfg)
 		g_object_unref (priv->cfg);
 	priv->cfg = cfg;
@@ -1308,7 +1318,7 @@ scan_request_cb (DBusGProxy *proxy, DBusGProxyCall *call_id, gpointer user_data)
 	                            G_TYPE_INVALID)) {
 		nm_warning  ("Could not get scan request result: %s", err->message);
 		g_error_free (err);
-	} 
+	}
 
 	/* Notify listeners of the result of the scan */
 	g_signal_emit (info->interface,

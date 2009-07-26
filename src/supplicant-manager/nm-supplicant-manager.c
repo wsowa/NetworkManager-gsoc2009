@@ -106,7 +106,7 @@ poke_supplicant_cb (gpointer user_data)
 	g_object_unref (proxy);
 
 out:
-	/* Reschedule the poke */	
+	/* Reschedule the poke */
 	priv->poke_id = g_timeout_add_seconds (SUPPLICANT_POKE_INTERVAL,
 	                               poke_supplicant_cb,
 	                               (gpointer) self);
@@ -266,7 +266,8 @@ nm_supplicant_manager_startup (NMSupplicantManager * self)
 NMSupplicantInterface *
 nm_supplicant_manager_get_iface (NMSupplicantManager * self,
 								 const char *ifname,
-								 gboolean is_wireless)
+								 gboolean is_wireless,
+								 gboolean is_nl80211)
 {
 	NMSupplicantManagerPrivate *priv;
 	NMSupplicantInterface * iface = NULL;
@@ -288,7 +289,7 @@ nm_supplicant_manager_get_iface (NMSupplicantManager * self,
 	}
 
 	if (!iface) {
-		iface = nm_supplicant_interface_new (self, ifname, is_wireless);
+		iface = nm_supplicant_interface_new (self, ifname, is_wireless, is_nl80211);
 		if (iface)
 			priv->ifaces = g_slist_append (priv->ifaces, iface);
 	}

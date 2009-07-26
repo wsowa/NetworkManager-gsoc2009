@@ -72,7 +72,7 @@ typedef enum
 } NMEthernetError;
 
 #define NM_ETHERNET_ERROR (nm_ethernet_error_quark ())
-#define NM_TYPE_ETHERNET_ERROR (nm_ethernet_error_get_type ()) 
+#define NM_TYPE_ETHERNET_ERROR (nm_ethernet_error_get_type ())
 
 typedef struct SupplicantStateTask {
 	NMDeviceEthernet *self;
@@ -1164,7 +1164,7 @@ supplicant_interface_init (NMDeviceEthernet *self)
 	iface = nm_device_get_iface (NM_DEVICE (self));
 
 	/* Create supplicant interface */
-	priv->supplicant.iface = nm_supplicant_manager_get_iface (priv->supplicant.mgr, iface, FALSE);
+	priv->supplicant.iface = nm_supplicant_manager_get_iface (priv->supplicant.mgr, iface, FALSE, FALSE);
 	if (!priv->supplicant.iface) {
 		nm_warning ("Couldn't initialize supplicant interface for %s.", iface);
 		supplicant_interface_release (self);
@@ -1854,7 +1854,7 @@ nm_device_ethernet_class_init (NMDeviceEthernetClass *klass)
 						   G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
 
 	/* Signals */
-	signals[PROPERTIES_CHANGED] = 
+	signals[PROPERTIES_CHANGED] =
 		nm_properties_changed_signal_new (object_class,
 								    G_STRUCT_OFFSET (NMDeviceEthernetClass, properties_changed));
 
@@ -1957,5 +1957,5 @@ supports_mii_carrier_detect (NMDeviceEthernet *self)
 
 out:
 	close (fd);
-	return supports_mii;	
+	return supports_mii;
 }

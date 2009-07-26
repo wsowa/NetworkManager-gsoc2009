@@ -78,7 +78,8 @@ guint32 nm_supplicant_manager_get_state (NMSupplicantManager * mgr);
 
 NMSupplicantInterface * nm_supplicant_manager_get_iface (NMSupplicantManager * mgr,
                                                          const char *ifname,
-														 gboolean is_wireless);
+														 gboolean is_wireless,
+														 gboolean is_nl80211);
 
 void nm_supplicant_manager_release_iface (NMSupplicantManager * mgr,
                                           NMSupplicantInterface * iface);

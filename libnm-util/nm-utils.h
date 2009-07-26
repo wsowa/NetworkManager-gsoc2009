@@ -30,6 +30,7 @@
 #include <execinfo.h>
 
 #include "nm-connection.h"
+#include "NetworkManager.h"
 
 /*********************************************************/
 /* The API defined here is _NOT_ guaranteed in any way!! */
@@ -179,7 +180,7 @@ typedef enum {
 gboolean nm_utils_security_valid (NMUtilsSecurityType type,
                                   guint32 wifi_caps,
                                   gboolean have_ap,
-                                  gboolean adhoc,
+                                  NM80211Mode mode,
                                   guint32 ap_flags,
                                   guint32 ap_wpa,
                                   guint32 ap_rsn);

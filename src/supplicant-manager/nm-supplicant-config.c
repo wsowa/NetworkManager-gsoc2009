@@ -47,7 +47,7 @@ G_DEFINE_TYPE (NMSupplicantConfig, nm_supplicant_config, G_TYPE_OBJECT)
 
 typedef struct {
 	char *value;
-	guint32 len;	
+	guint32 len;
 	OptType type;
 } ConfigOption;
 
@@ -151,7 +151,7 @@ nm_supplicant_config_add_option_with_type (NMSupplicantConfig *self,
 	memcpy (opt->value, value, len);
 
 	opt->len = len;
-	opt->type = type;	
+	opt->type = type;
 
 {
 char buf[255];
@@ -229,7 +229,7 @@ nm_supplicant_config_add_blob (NMSupplicantConfig *self,
 	}
 
 	opt->len = strlen (opt->value);
-	opt->type = type;	
+	opt->type = type;
 
 nm_info ("Config: added '%s' value '%s'", key, opt->value);
 
@@ -354,12 +354,12 @@ gboolean
 nm_supplicant_config_add_setting_wireless (NMSupplicantConfig * self,
                                            NMSettingWireless * setting,
                                            gboolean is_broadcast,
-                                           guint32 adhoc_freq,
+                                           guint32 freq,
                                            gboolean has_scan_capa_ssid)
 {
 	NMSupplicantConfigPrivate *priv;
-	gboolean is_adhoc;
-	const char *mode;
+	NM80211Mode mode;
+	const char *str_mode;
 	const GByteArray *id;
 
 	g_return_val_if_fail (NM_IS_SUPPLICANT_CONFIG (self), FALSE);
@@ -367,9 +367,15 @@ nm_supplicant_config_add_setting_wireless (NMSupplicantConfig * self,
 
 	priv = NM_SUPPLICANT_CONFIG_GET_PRIVATE (self);
 
-	mode = nm_setting_wireless_get_mode (setting);
-	is_adhoc = (mode && !strcmp (mode, "adhoc")) ? TRUE : FALSE;
-	if (is_adhoc)
+	str_mode = nm_setting_wireless_get_mode (setting);
+	if (!strcmp (str_mode, "adhoc"))
+		mode = NM_802_11_MODE_ADHOC;
+	else if (!strcmp (str_mode, "master"))
+		mode = NM_802_11_MODE_MASTER;
+	else
+		mode = NM_802_11_MODE_INFRA;
+
+	if (mode == NM_802_11_MODE_MASTER || mode == NM_802_11_MODE_ADHOC)
 		priv->ap_scan = 2;
 	else if (is_broadcast == FALSE) {
 		/* drivers that support scanning specific SSIDs should use
@@ -384,29 +390,37 @@ nm_supplicant_config_add_setting_wireless (NMSupplicantConfig * self,
 		return FALSE;
 	}
 
-	if (is_adhoc) {
-		if (!nm_supplicant_config_add_option (self, "mode", "1", -1, FALSE)) {
-			nm_warning ("Error adding mode to supplicant config.");
-			return FALSE;
-		}
+	if (mode == NM_802_11_MODE_MASTER || mode == NM_802_11_MODE_ADHOC) {
+		if (mode == NM_802_11_MODE_MASTER)
+			if (!nm_supplicant_config_add_option (self, "mode", "2",
+												  -1, FALSE)) {
+				nm_warning ("Error adding mode to supplicant config.");
+				return FALSE;
+			}
+		if (mode == NM_802_11_MODE_ADHOC)
+			if (!nm_supplicant_config_add_option (self, "mode", "1",
+												  -1, FALSE)) {
+				nm_warning ("Error adding mode to supplicant config.");
+				return FALSE;
+			}
 
-		if (adhoc_freq) {
+		if (freq) {
 			char *str_freq;
 
-			str_freq = g_strdup_printf ("%u", adhoc_freq);
+			str_freq = g_strdup_printf ("%u", freq);
 			if (!nm_supplicant_config_add_option (self, "frequency", str_freq, -1, FALSE)) {
 				g_free (str_freq);
-				nm_warning ("Error adding Ad-Hoc frequency to supplicant config.");
+				nm_warning ("Error adding Ad-Hoc/Master frequency to supplicant config.");
 				return FALSE;
 			}
 			g_free (str_freq);
 		}
 	}
 
-	/* Except for Ad-Hoc networks, request that the driver probe for the
-	 * specific SSID we want to associate with.
+	/* Except for Ad-Hoc networks and Master mode, request that the driver
+	 * probe for the specific SSID we want to associate with.
 	 */
-	if (!is_adhoc) {
+	else {
 		if (!nm_supplicant_config_add_option (self, "scan_ssid", "1", -1, FALSE))
 			return FALSE;
 	}
@@ -427,7 +441,7 @@ nm_supplicant_config_add_setting_wireless (NMSupplicantConfig * self,
 	}
 
 	// FIXME: band & channel config items
-	
+
 	return TRUE;
 }
 

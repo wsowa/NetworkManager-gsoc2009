@@ -40,7 +40,6 @@
 
 #include "nm-utils.h"
 #include "nm-utils-private.h"
-#include "NetworkManager.h"
 #include "nm-dbus-glib-types.h"
 #include "nm-setting-ip4-config.h"
 #include "nm-setting-ip6-config.h"
@@ -265,7 +264,7 @@ static gboolean initialized = FALSE;
  * uses libnm-util.  Sets up an atexit() handler to ensure de-initialization
  * is performed, but calling nm_utils_deinit() to explicitly deinitialize
  * libnm-util can also be done.  This function can be called more than once.
- * 
+ *
  * Returns: TRUE if the initialization was successful, FALSE on failure.
  **/
 gboolean
@@ -770,23 +769,23 @@ _nm_utils_register_value_transformations (void)
 	static gboolean registered = FALSE;
 
 	if (G_UNLIKELY (!registered)) {
-		g_value_register_transform_func (G_TYPE_STRV, 
+		g_value_register_transform_func (G_TYPE_STRV,
 		                                 DBUS_TYPE_G_LIST_OF_STRING,
 		                                 nm_utils_convert_strv_to_slist);
 		g_value_register_transform_func (DBUS_TYPE_G_LIST_OF_STRING,
-		                                 G_TYPE_STRING, 
+		                                 G_TYPE_STRING,
 		                                 nm_utils_convert_strv_to_string);
 		g_value_register_transform_func (DBUS_TYPE_G_UINT_ARRAY,
-		                                 G_TYPE_STRING, 
+		                                 G_TYPE_STRING,
 		                                 nm_utils_convert_uint_array_to_string);
 		g_value_register_transform_func (DBUS_TYPE_G_ARRAY_OF_ARRAY_OF_UINT,
-		                                 G_TYPE_STRING, 
+		                                 G_TYPE_STRING,
 		                                 nm_utils_convert_ip4_addr_struct_array_to_string);
 		g_value_register_transform_func (DBUS_TYPE_G_MAP_OF_VARIANT,
-		                                 G_TYPE_STRING, 
+		                                 G_TYPE_STRING,
 		                                 nm_utils_convert_gvalue_hash_to_string);
 		g_value_register_transform_func (DBUS_TYPE_G_MAP_OF_STRING,
-		                                 G_TYPE_STRING, 
+		                                 G_TYPE_STRING,
 		                                 nm_utils_convert_string_hash_to_string);
 		g_value_register_transform_func (DBUS_TYPE_G_UCHAR_ARRAY,
 		                                 G_TYPE_STRING,
@@ -849,7 +848,7 @@ device_supports_ap_ciphers (guint32 dev_caps,
  * @wifi_caps: bitfield of the capabilities of the specific WiFi device, e.g.
  * #NM_WIFI_DEVICE_CAP_CIPHER_WEP40
  * @have_ap: whether the @ap_flags, @ap_wpa, and @ap_rsn arguments are valid
- * @adhoc: whether the capabilities being tested are from an Ad-Hoc AP (IBSS)
+ * @mode: mode of AP which the capabilities are tested
  * @ap_flags: bitfield of AP capabilities, e.g. #NM_802_11_AP_FLAGS_PRIVACY
  * @ap_wpa: bitfield of AP capabilties derived from the AP's WPA beacon,
  * e.g. (#NM_802_11_AP_SEC_PAIR_TKIP | #NM_802_11_AP_SEC_KEY_MGMT_PSK)
@@ -867,7 +866,7 @@ gboolean
 nm_utils_security_valid (NMUtilsSecurityType type,
                          guint32 wifi_caps,
                          gboolean have_ap,
-                         gboolean adhoc,
+                         NM80211Mode mode,
                          guint32 ap_flags,
                          guint32 ap_wpa,
                          guint32 ap_rsn)
@@ -877,9 +876,9 @@ nm_utils_security_valid (NMUtilsSecurityType type,
 	if (!have_ap) {
 		if (type == NMU_SEC_NONE)
 			return TRUE;
-		if (   (type == NMU_SEC_STATIC_WEP)
-		    || ((type == NMU_SEC_DYNAMIC_WEP) && !adhoc)
-		    || ((type == NMU_SEC_LEAP) && !adhoc)) {
+		if (   (type == NMU_SEC_STATIC_WEP && mode != NM_802_11_MODE_MASTER)
+		    || (type == NMU_SEC_DYNAMIC_WEP && mode != NM_802_11_MODE_MASTER && mode != NM_802_11_MODE_ADHOC)
+		    || (type == NMU_SEC_LEAP && mode != NM_802_11_MODE_MASTER && mode != NM_802_11_MODE_ADHOC)) {
 			if (wifi_caps & (NM_WIFI_DEVICE_CAP_CIPHER_WEP40 | NM_WIFI_DEVICE_CAP_CIPHER_WEP104))
 				return TRUE;
 		}
@@ -894,10 +893,12 @@ nm_utils_security_valid (NMUtilsSecurityType type,
 			return FALSE;
 		break;
 	case NMU_SEC_LEAP: /* require PRIVACY bit for LEAP? */
-		if (adhoc)
+		if (mode == NM_802_11_MODE_MASTER || mode == NM_802_11_MODE_ADHOC)
 			return FALSE;
 		/* Fall through */
 	case NMU_SEC_STATIC_WEP:
+		if (mode == NM_802_11_MODE_MASTER)
+			return FALSE;
 		g_assert (have_ap);
 		if (!(ap_flags & NM_802_11_AP_FLAGS_PRIVACY))
 			return FALSE;
@@ -908,7 +909,7 @@ nm_utils_security_valid (NMUtilsSecurityType type,
 		}
 		break;
 	case NMU_SEC_DYNAMIC_WEP:
-		if (adhoc)
+		if (mode == NM_802_11_MODE_ADHOC || mode == NM_802_11_MODE_MASTER)
 			return FALSE;
 		g_assert (have_ap);
 		if (ap_rsn || !(ap_flags & NM_802_11_AP_FLAGS_PRIVACY))
@@ -926,7 +927,7 @@ nm_utils_security_valid (NMUtilsSecurityType type,
 			return FALSE;
 		if (have_ap) {
 			/* Ad-Hoc WPA APs won't necessarily have the PSK flag set */
-			if ((ap_wpa & NM_802_11_AP_SEC_KEY_MGMT_PSK) || adhoc) {
+			if ((ap_wpa & NM_802_11_AP_SEC_KEY_MGMT_PSK) || mode == NM_802_11_MODE_ADHOC) {
 				if (   (ap_wpa & NM_802_11_AP_SEC_PAIR_TKIP)
 				    && (wifi_caps & NM_WIFI_DEVICE_CAP_CIPHER_TKIP))
 					return TRUE;
@@ -942,7 +943,7 @@ nm_utils_security_valid (NMUtilsSecurityType type,
 			return FALSE;
 		if (have_ap) {
 			/* Ad-Hoc WPA APs won't necessarily have the PSK flag set */
-			if ((ap_rsn & NM_802_11_AP_SEC_KEY_MGMT_PSK) || adhoc) {
+			if ((ap_rsn & NM_802_11_AP_SEC_KEY_MGMT_PSK) || mode == NM_802_11_MODE_ADHOC) {
 				if (   (ap_rsn & NM_802_11_AP_SEC_PAIR_TKIP)
 				    && (wifi_caps & NM_WIFI_DEVICE_CAP_CIPHER_TKIP))
 					return TRUE;
@@ -954,7 +955,7 @@ nm_utils_security_valid (NMUtilsSecurityType type,
 		}
 		break;
 	case NMU_SEC_WPA_ENTERPRISE:
-		if (adhoc)
+		if (mode == NM_802_11_MODE_ADHOC || mode == NM_802_11_MODE_MASTER)
 			return FALSE;
 		if (!(wifi_caps & NM_WIFI_DEVICE_CAP_WPA))
 			return FALSE;
@@ -967,7 +968,7 @@ nm_utils_security_valid (NMUtilsSecurityType type,
 		}
 		break;
 	case NMU_SEC_WPA2_ENTERPRISE:
-		if (adhoc)
+		if (mode == NM_802_11_MODE_ADHOC || mode == NM_802_11_MODE_MASTER)
 			return FALSE;
 		if (!(wifi_caps & NM_WIFI_DEVICE_CAP_RSN))
 			return FALSE;
@@ -1015,7 +1016,7 @@ nm_utils_ip4_addresses_from_gvalue (const GValue *value)
 			nm_warning ("Ignoring invalid IP4 address");
 			continue;
 		}
-		
+
 		addr = nm_ip4_address_new ();
 		nm_ip4_address_set_address (addr, g_array_index (array, guint32, 0));
 		nm_ip4_address_set_prefix (addr, g_array_index (array, guint32, 1));
@@ -1097,7 +1098,7 @@ nm_utils_ip4_routes_from_gvalue (const GValue *value)
 			nm_warning ("Ignoring invalid IP4 route");
 			continue;
 		}
-		
+
 		route = nm_ip4_route_new ();
 		nm_ip4_route_set_dest (route, g_array_index (array, guint32, 0));
 		nm_ip4_route_set_prefix (route, g_array_index (array, guint32, 1));

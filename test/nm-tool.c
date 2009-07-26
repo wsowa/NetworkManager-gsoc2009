@@ -377,6 +377,8 @@ detail_device (gpointer data, gpointer user_data)
 			print_string ("  WPA Encryption", "yes");
 		if (wcaps & NM_WIFI_DEVICE_CAP_RSN)
 			print_string ("  WPA2 Encryption", "yes");
+		if (wcaps & NM_WIFI_DEVICE_CAP_MODE_MASTER)
+			print_string ("  Master mode support", "yes");
 
 		if (nm_device_get_state (device) == NM_DEVICE_STATE_ACTIVATED) {
 			active_ap = nm_device_wifi_get_active_access_point (NM_DEVICE_WIFI (device));

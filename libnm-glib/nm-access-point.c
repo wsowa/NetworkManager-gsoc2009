@@ -299,7 +299,7 @@ nm_access_point_get_max_bitrate (NMAccessPoint *ap)
 
 /**
  * nm_access_point_get_strength:
- * @ap: 
+ * @ap:
  *
  * Gets the current signal strength of the access point.
  *
@@ -555,7 +555,7 @@ nm_access_point_class_init (NMAccessPointClass *ap_class)
 						  "Hardware MAC address",
 						  NULL,
 						  G_PARAM_READABLE));
-	
+
 	/**
 	 * NMAccessPoint:mode:
 	 *
@@ -566,7 +566,7 @@ nm_access_point_class_init (NMAccessPointClass *ap_class)
 		 g_param_spec_uint (NM_ACCESS_POINT_MODE,
 					    "Mode",
 					    "Mode",
-					    NM_802_11_MODE_ADHOC, NM_802_11_MODE_INFRA, NM_802_11_MODE_INFRA,
+					    NM_802_11_MODE_ADHOC, NM_802_11_MODE_MASTER, NM_802_11_MODE_INFRA,
 					    G_PARAM_READABLE));
 
 	/**
