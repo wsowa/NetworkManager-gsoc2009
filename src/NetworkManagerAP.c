@@ -593,8 +593,8 @@ nm_ap_new_fake_from_connection (NMConnection *connection)
 			nm_ap_set_mode (ap, NM_802_11_MODE_INFRA);
 		else if (!strcmp (mode, "adhoc"))
 			nm_ap_set_mode (ap, NM_802_11_MODE_ADHOC);
-		else if (!strcmp (mode, "master"))
-			nm_ap_set_mode (ap, NM_802_11_MODE_MASTER);
+		else if (!strcmp (mode, "ap"))
+			nm_ap_set_mode (ap, NM_802_11_MODE_AP);
 		else
 			goto error;
 	} else {
@@ -934,7 +934,7 @@ void nm_ap_set_mode (NMAccessPoint *ap, const NM80211Mode mode)
 
 	g_return_if_fail (NM_IS_AP (ap));
 
-	if (mode == NM_802_11_MODE_ADHOC || mode == NM_802_11_MODE_INFRA || mode == NM_802_11_MODE_MASTER) {
+	if (mode == NM_802_11_MODE_ADHOC || mode == NM_802_11_MODE_INFRA || mode == NM_802_11_MODE_AP) {
 		priv = NM_AP_GET_PRIVATE (ap);
 
 		if (priv->mode != mode) {

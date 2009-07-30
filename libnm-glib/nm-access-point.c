@@ -566,7 +566,7 @@ nm_access_point_class_init (NMAccessPointClass *ap_class)
 		 g_param_spec_uint (NM_ACCESS_POINT_MODE,
 					    "Mode",
 					    "Mode",
-					    NM_802_11_MODE_ADHOC, NM_802_11_MODE_MASTER, NM_802_11_MODE_INFRA,
+					    NM_802_11_MODE_ADHOC, NM_802_11_MODE_AP, NM_802_11_MODE_INFRA,
 					    G_PARAM_READABLE));
 
 	/**

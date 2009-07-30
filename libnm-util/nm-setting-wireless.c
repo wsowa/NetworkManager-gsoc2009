@@ -435,7 +435,7 @@ static gboolean
 verify (NMSetting *setting, GSList *all_settings, GError **error)
 {
 	NMSettingWirelessPrivate *priv = NM_SETTING_WIRELESS_GET_PRIVATE (setting);
-	const char *valid_modes[] = { "infrastructure", "adhoc", "master", NULL };
+	const char *valid_modes[] = { "infrastructure", "adhoc", "ap", NULL };
 	const char *valid_bands[] = { "a", "bg", NULL };
 	GSList *iter;
 

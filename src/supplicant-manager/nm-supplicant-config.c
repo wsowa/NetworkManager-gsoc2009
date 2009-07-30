@@ -370,12 +370,12 @@ nm_supplicant_config_add_setting_wireless (NMSupplicantConfig * self,
 	str_mode = nm_setting_wireless_get_mode (setting);
 	if (!strcmp (str_mode, "adhoc"))
 		mode = NM_802_11_MODE_ADHOC;
-	else if (!strcmp (str_mode, "master"))
-		mode = NM_802_11_MODE_MASTER;
+	else if (!strcmp (str_mode, "ap"))
+		mode = NM_802_11_MODE_AP;
 	else
 		mode = NM_802_11_MODE_INFRA;
 
-	if (mode == NM_802_11_MODE_MASTER || mode == NM_802_11_MODE_ADHOC)
+	if (mode == NM_802_11_MODE_AP || mode == NM_802_11_MODE_ADHOC)
 		priv->ap_scan = 2;
 	else if (is_broadcast == FALSE) {
 		/* drivers that support scanning specific SSIDs should use
@@ -390,8 +390,8 @@ nm_supplicant_config_add_setting_wireless (NMSupplicantConfig * self,
 		return FALSE;
 	}
 
-	if (mode == NM_802_11_MODE_MASTER || mode == NM_802_11_MODE_ADHOC) {
-		if (mode == NM_802_11_MODE_MASTER)
+	if (mode == NM_802_11_MODE_AP || mode == NM_802_11_MODE_ADHOC) {
+		if (mode == NM_802_11_MODE_AP)
 			if (!nm_supplicant_config_add_option (self, "mode", "2",
 												  -1, FALSE)) {
 				nm_warning ("Error adding mode to supplicant config.");
@@ -410,14 +410,14 @@ nm_supplicant_config_add_setting_wireless (NMSupplicantConfig * self,
 			str_freq = g_strdup_printf ("%u", freq);
 			if (!nm_supplicant_config_add_option (self, "frequency", str_freq, -1, FALSE)) {
 				g_free (str_freq);
-				nm_warning ("Error adding Ad-Hoc/Master frequency to supplicant config.");
+				nm_warning ("Error adding Ad-Hoc/AP frequency to supplicant config.");
 				return FALSE;
 			}
 			g_free (str_freq);
 		}
 	}
 
-	/* Except for Ad-Hoc networks and Master mode, request that the driver
+	/* Except for Ad-Hoc networks and AP mode, request that the driver
 	 * probe for the specific SSID we want to associate with.
 	 */
 	else {

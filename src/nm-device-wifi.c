@@ -476,7 +476,7 @@ get_wireless_capabilities (NMDeviceWifi *self,
 
 	/* Check for Access Point mode support */
 	if (priv->is_nl80211)
-		caps |= NM_WIFI_DEVICE_CAP_MODE_MASTER;
+		caps |= NM_WIFI_DEVICE_CAP_MODE_AP;
 
 	return caps;
 }
@@ -1321,7 +1321,7 @@ nm_device_wifi_get_mode (NMDeviceWifi *self)
 			mode = NM_802_11_MODE_INFRA;
 			break;
 		case IW_MODE_MASTER:
-			mode = NM_802_11_MODE_MASTER;
+			mode = NM_802_11_MODE_AP;
 			break;
 		default:
 			break;
@@ -1369,7 +1369,7 @@ nm_device_wifi_set_mode (NMDeviceWifi *self, const NM80211Mode mode)
 	case NM_802_11_MODE_INFRA:
 		wrq.u.mode = IW_MODE_INFRA;
 		break;
-	case NM_802_11_MODE_MASTER:
+	case NM_802_11_MODE_AP:
 		wrq.u.mode = IW_MODE_MASTER;
 		break;
 	default:
@@ -2733,7 +2733,7 @@ build_supplicant_config (NMDeviceWifi *self,
 	 * pick something usable.
 	 */
 	if ((nm_ap_get_mode (ap) == NM_802_11_MODE_ADHOC ||
-			nm_ap_get_mode (ap) == NM_802_11_MODE_MASTER) &&
+			nm_ap_get_mode (ap) == NM_802_11_MODE_AP) &&
 			nm_ap_get_user_created (ap)) {
 		const char *band = nm_setting_wireless_get_band (s_wireless);
 		guint32 channel =  nm_setting_wireless_get_channel (s_wireless);
@@ -2876,7 +2876,7 @@ real_act_stage1_prepare (NMDevice *dev, NMDeviceStateReason *reason)
 		g_return_val_if_fail (ap != NULL, NM_ACT_STAGE_RETURN_FAILURE);
 
 		switch (nm_ap_get_mode (ap)) {
-			case NM_802_11_MODE_MASTER:
+			case NM_802_11_MODE_AP:
 			case NM_802_11_MODE_ADHOC:
 				nm_ap_set_user_created (ap, TRUE);
 				break;

@@ -876,9 +876,9 @@ nm_utils_security_valid (NMUtilsSecurityType type,
 	if (!have_ap) {
 		if (type == NMU_SEC_NONE)
 			return TRUE;
-		if (   (type == NMU_SEC_STATIC_WEP && mode != NM_802_11_MODE_MASTER)
-		    || (type == NMU_SEC_DYNAMIC_WEP && mode != NM_802_11_MODE_MASTER && mode != NM_802_11_MODE_ADHOC)
-		    || (type == NMU_SEC_LEAP && mode != NM_802_11_MODE_MASTER && mode != NM_802_11_MODE_ADHOC)) {
+		if (   (type == NMU_SEC_STATIC_WEP && mode != NM_802_11_MODE_AP)
+		    || (type == NMU_SEC_DYNAMIC_WEP && mode != NM_802_11_MODE_AP && mode != NM_802_11_MODE_ADHOC)
+		    || (type == NMU_SEC_LEAP && mode != NM_802_11_MODE_AP && mode != NM_802_11_MODE_ADHOC)) {
 			if (wifi_caps & (NM_WIFI_DEVICE_CAP_CIPHER_WEP40 | NM_WIFI_DEVICE_CAP_CIPHER_WEP104))
 				return TRUE;
 		}
@@ -893,11 +893,11 @@ nm_utils_security_valid (NMUtilsSecurityType type,
 			return FALSE;
 		break;
 	case NMU_SEC_LEAP: /* require PRIVACY bit for LEAP? */
-		if (mode == NM_802_11_MODE_MASTER || mode == NM_802_11_MODE_ADHOC)
+		if (mode == NM_802_11_MODE_AP || mode == NM_802_11_MODE_ADHOC)
 			return FALSE;
 		/* Fall through */
 	case NMU_SEC_STATIC_WEP:
-		if (mode == NM_802_11_MODE_MASTER)
+		if (mode == NM_802_11_MODE_AP)
 			return FALSE;
 		g_assert (have_ap);
 		if (!(ap_flags & NM_802_11_AP_FLAGS_PRIVACY))
@@ -909,7 +909,7 @@ nm_utils_security_valid (NMUtilsSecurityType type,
 		}
 		break;
 	case NMU_SEC_DYNAMIC_WEP:
-		if (mode == NM_802_11_MODE_ADHOC || mode == NM_802_11_MODE_MASTER)
+		if (mode == NM_802_11_MODE_ADHOC || mode == NM_802_11_MODE_AP)
 			return FALSE;
 		g_assert (have_ap);
 		if (ap_rsn || !(ap_flags & NM_802_11_AP_FLAGS_PRIVACY))
@@ -955,7 +955,7 @@ nm_utils_security_valid (NMUtilsSecurityType type,
 		}
 		break;
 	case NMU_SEC_WPA_ENTERPRISE:
-		if (mode == NM_802_11_MODE_ADHOC || mode == NM_802_11_MODE_MASTER)
+		if (mode == NM_802_11_MODE_ADHOC || mode == NM_802_11_MODE_AP)
 			return FALSE;
 		if (!(wifi_caps & NM_WIFI_DEVICE_CAP_WPA))
 			return FALSE;
@@ -968,7 +968,7 @@ nm_utils_security_valid (NMUtilsSecurityType type,
 		}
 		break;
 	case NMU_SEC_WPA2_ENTERPRISE:
-		if (mode == NM_802_11_MODE_ADHOC || mode == NM_802_11_MODE_MASTER)
+		if (mode == NM_802_11_MODE_ADHOC || mode == NM_802_11_MODE_AP)
 			return FALSE;
 		if (!(wifi_caps & NM_WIFI_DEVICE_CAP_RSN))
 			return FALSE;
