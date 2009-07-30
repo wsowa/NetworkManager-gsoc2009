@@ -2728,7 +2728,7 @@ build_supplicant_config (NMDeviceWifi *self,
 	if (!config)
 		return NULL;
 
-	/* Figure out the Ad-Hoc frequency to use if creating an adhoc network or
+	/* Figure out the frequency to use if creating an adhoc network or
 	 * setting device in Access Point mode; if nothing was specified then
 	 * pick something usable.
 	 */
@@ -2736,15 +2736,20 @@ build_supplicant_config (NMDeviceWifi *self,
 			nm_ap_get_mode (ap) == NM_802_11_MODE_MASTER) &&
 			nm_ap_get_user_created (ap)) {
 		const char *band = nm_setting_wireless_get_band (s_wireless);
+		guint32 channel =  nm_setting_wireless_get_channel (s_wireless);
 
 		freq = nm_ap_get_freq (ap);
 		if (!freq) {
-			if (band && !strcmp (band, "a")) {
-				guint32 a_freqs[] = {5180, 5200, 5220, 5745, 5765, 5785, 5805, 0};
-				freq = find_supported_frequency (self, a_freqs);
-			} else {
-				guint32 bg_freqs[] = {2412, 2437, 2462, 2472, 0};
-				freq = find_supported_frequency (self, bg_freqs);
+			if (band) {
+				if (channel) {
+					freq = channel_to_freq (channel, band);
+				} else if (!strcmp (band, "a")) {
+					guint32 a_freqs[] = {5180, 5200, 5220, 5745, 5765, 5785, 5805, 0};
+					freq = find_supported_frequency (self, a_freqs);
+				} else {
+					guint32 bg_freqs[] = {2412, 2437, 2462, 2472, 0};
+					freq = find_supported_frequency (self, bg_freqs);
+				}
 			}
 		}
 
