@@ -286,7 +286,7 @@ nm_ap_class_init (NMAccessPointClass *ap_class)
 							  "Hardware MAC address",
 							  NULL,
 							  G_PARAM_READABLE));
-	
+
 	g_object_class_install_property
 		(object_class, PROP_MODE,
 		 g_param_spec_uint (NM_AP_MODE,
@@ -312,7 +312,7 @@ nm_ap_class_init (NMAccessPointClass *ap_class)
 							G_PARAM_READWRITE));
 
 	/* Signals */
-	signals[PROPERTIES_CHANGED] = 
+	signals[PROPERTIES_CHANGED] =
 		nm_properties_changed_signal_new (object_class,
 								    G_STRUCT_OFFSET (NMAccessPointClass, properties_changed));
 
@@ -1226,7 +1226,7 @@ nm_ap_check_compatible (NMAccessPoint *self,
 	s_wireless = NM_SETTING_WIRELESS (nm_connection_get_setting (connection, NM_TYPE_SETTING_WIRELESS));
 	if (s_wireless == NULL)
 		return FALSE;
-	
+
 	if (!nm_utils_same_ssid (nm_setting_wireless_get_ssid (s_wireless), priv->ssid, TRUE))
 		return FALSE;
 
@@ -1321,7 +1321,7 @@ nm_ap_match_in_list (NMAccessPoint *find_ap,
 		/* BSSID match */
 		if (   (strict_match || nm_ethernet_address_is_valid (find_addr))
 		    && nm_ethernet_address_is_valid (list_addr)
-		    && memcmp (list_addr->ether_addr_octet, 
+		    && memcmp (list_addr->ether_addr_octet,
 		               find_addr->ether_addr_octet,
 		               ETH_ALEN) != 0) {
 			continue;

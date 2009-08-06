@@ -107,7 +107,7 @@ typedef enum {
 } NMWifiError;
 
 #define NM_WIFI_ERROR (nm_wifi_error_quark ())
-#define NM_TYPE_WIFI_ERROR (nm_wifi_error_get_type ()) 
+#define NM_TYPE_WIFI_ERROR (nm_wifi_error_get_type ())
 
 typedef struct SupplicantStateTask {
 	NMDeviceWifi *self;
@@ -1424,7 +1424,7 @@ max_qual->updated);
 #endif
 
 	/* Try using the card's idea of the signal quality first as long as it tells us what the max quality is.
-	 * Drivers that fill in quality values MUST treat them as percentages, ie the "Link Quality" MUST be 
+	 * Drivers that fill in quality values MUST treat them as percentages, ie the "Link Quality" MUST be
 	 * bounded by 0 and max_qual->qual, and MUST change in a linear fashion.  Within those bounds, drivers
 	 * are free to use whatever they want to calculate "Link Quality".
 	 */
@@ -1856,7 +1856,7 @@ ap_auth_enforced (NMConnection *connection,
 		/* No way to tell if the key is wrong with Open System
 		 * auth mode in WEP.  Auth is not enforced like Shared Key.
 		 */
-		s_wireless_sec = (NMSettingWirelessSecurity *) nm_connection_get_setting (connection, 
+		s_wireless_sec = (NMSettingWirelessSecurity *) nm_connection_get_setting (connection,
 																    NM_TYPE_SETTING_WIRELESS_SECURITY);
 		if (s_wireless_sec) {
 			auth_alg = nm_setting_wireless_security_get_auth_alg (s_wireless_sec);
@@ -2164,7 +2164,7 @@ link_timeout_cb (gpointer user_data)
 		if (!setting_name)
 			goto time_out;
 
-		/* Association/authentication failed during association, probably have a 
+		/* Association/authentication failed during association, probably have a
 		 * bad encryption key and the authenticating entity (AP, RADIUS server, etc)
 		 * denied the association due to bad credentials.
 		 */

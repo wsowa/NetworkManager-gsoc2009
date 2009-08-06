@@ -106,7 +106,7 @@ poke_supplicant_cb (gpointer user_data)
 	g_object_unref (proxy);
 
 out:
-	/* Reschedule the poke */	
+	/* Reschedule the poke */
 	priv->poke_id = g_timeout_add_seconds (SUPPLICANT_POKE_INTERVAL,
 	                               poke_supplicant_cb,
 	                               (gpointer) self);
