@@ -102,7 +102,7 @@ poke_supplicant_cb (gpointer user_data)
 	}
 
 	nm_info ("Trying to start the supplicant...");
-	dbus_g_proxy_call_no_reply (proxy, "getInterface", G_TYPE_STRING, tmp, G_TYPE_INVALID);
+	dbus_g_proxy_call_no_reply (proxy, "GetInterface", G_TYPE_STRING, tmp, G_TYPE_INVALID);
 	g_object_unref (proxy);
 
 out:

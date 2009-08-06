@@ -380,7 +380,7 @@ foreach_property_cb (gpointer key, gpointer value, gpointer user_data)
 	if (G_VALUE_HOLDS_BOXED (variant)) {
 		GArray *array = g_value_get_boxed (variant);
 
-		if (!strcmp (key, "ssid")) {
+		if (!strcmp (key, "SSID")) {
 			guint32 len = MIN (IW_ESSID_MAX_SIZE, array->len);
 			GByteArray * ssid;
 
@@ -396,7 +396,7 @@ foreach_property_cb (gpointer key, gpointer value, gpointer user_data)
 			g_byte_array_append (ssid, (const guint8 *) array->data, len);
 			nm_ap_set_ssid (ap, ssid);
 			g_byte_array_free (ssid, TRUE);
-		} else if (!strcmp (key, "bssid")) {
+		} else if (!strcmp (key, "BSSID")) {
 			struct ether_addr addr;
 
 			if (array->len != ETH_ALEN)
@@ -404,7 +404,7 @@ foreach_property_cb (gpointer key, gpointer value, gpointer user_data)
 			memset (&addr, 0, sizeof (struct ether_addr));
 			memcpy (&addr, array->data, ETH_ALEN);
 			nm_ap_set_address (ap, &addr);
-		} else if (!strcmp (key, "wpaie")) {
+		} else if (!strcmp (key, "WPAIE")) {
 			guint8 * ie = (guint8 *) array->data;
 			guint32 flags = nm_ap_get_wpa_flags (ap);
 
@@ -412,7 +412,7 @@ foreach_property_cb (gpointer key, gpointer value, gpointer user_data)
 				return;
 			flags = nm_ap_add_security_from_ie (flags, ie, array->len);
 			nm_ap_set_wpa_flags (ap, flags);
-		} else if (!strcmp (key, "rsnie")) {
+		} else if (!strcmp (key, "RSNIE")) {
 			guint8 * ie = (guint8 *) array->data;
 			guint32 flags = nm_ap_get_rsn_flags (ap);
 
@@ -424,16 +424,16 @@ foreach_property_cb (gpointer key, gpointer value, gpointer user_data)
 	} else if (G_VALUE_HOLDS_INT (variant)) {
 		gint32 int_val = g_value_get_int (variant);
 
-		if (!strcmp (key, "frequency")) {
+		if (!strcmp (key, "Frequency")) {
 			nm_ap_set_freq (ap, (guint32) int_val);
-		} else if (!strcmp (key, "maxrate")) {
+		} else if (!strcmp (key, "MaxRate")) {
 			/* Supplicant reports as b/s, we use Kb/s internally */
 			nm_ap_set_max_bitrate (ap, int_val / 1000);
 		}
 	} else if (G_VALUE_HOLDS_UINT (variant)) {
 		guint32 val = g_value_get_uint (variant);
 
-		if (!strcmp (key, "capabilities")) {
+		if (!strcmp (key, "Capabilities")) {
 			if (val & IEEE80211_CAP_ESS) {
 				nm_ap_set_mode (ap, NM_802_11_MODE_INFRA);
 			} else if (val & IEEE80211_CAP_IBSS) {
