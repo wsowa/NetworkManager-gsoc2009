@@ -112,6 +112,7 @@ typedef struct
 
 	guint32               con_state;
 	gboolean              scanning;
+	guint32               capabilities;
 
 	DBusGProxy *          iface_proxy;
 	DBusGProxy *          net_proxy;
@@ -613,7 +614,6 @@ request_scan_results (gpointer user_data)
 			char *op = g_ptr_array_index (array, i);
 
 			request_bssid_properties (self, op);
-			//g_free (op);
 		}
 
 		g_value_unset (&value);
@@ -717,6 +717,90 @@ wpas_iface_get_state (NMSupplicantInterface *self)
 		nm_warning ("could not get interface state");
 	}
 
+}
+
+static void
+foreach_capability_cb (gpointer key, gpointer value, gpointer user_data)
+{
+	GValue *variant = (GValue *) value;
+	guint32 *capas = (guint32 *) user_data;
+
+	if (!strcmp (key, "Group")) {
+		char** array = g_value_get_boxed (variant);
+		int i=0;
+		while (array[i]) {
+			if (!strcmp (array[i], "ccmp"))
+				*capas |= NM_WIFI_DEVICE_CAP_CIPHER_CCMP;
+			else if (!strcmp (array[i], "tkip"))
+				*capas |= NM_WIFI_DEVICE_CAP_CIPHER_TKIP;
+			else if (!strcmp (array[i], "wep104"))
+				*capas |= NM_WIFI_DEVICE_CAP_CIPHER_WEP40;
+			else if (!strcmp (array[i], "wep40"))
+				*capas |= NM_WIFI_DEVICE_CAP_CIPHER_WEP104;
+			i++;
+		}
+	} else if (!strcmp (key, "Protocol")) {
+		char** array = g_value_get_boxed (variant);
+		int i=0;
+		while (array[i]) {
+			if (!strcmp (array[i], "wpa"))
+				*capas |= NM_WIFI_DEVICE_CAP_WPA;
+			else if (!strcmp (array[i], "rsn"))
+				*capas |= NM_WIFI_DEVICE_CAP_RSN;
+			i++;
+		}
+	} else if (!strcmp (key, "Modes")) {
+		char** array = g_value_get_boxed (variant);
+		int i=0;
+		while (array[i]) {
+			if (!strcmp (array[i], "ap"))
+				*capas |= NM_WIFI_DEVICE_CAP_MODE_AP;
+			i++;
+		}
+	}
+}
+
+#define WPA_CAPS (NM_WIFI_DEVICE_CAP_CIPHER_TKIP | \
+                  NM_WIFI_DEVICE_CAP_CIPHER_CCMP | \
+                  NM_WIFI_DEVICE_CAP_WPA | \
+                  NM_WIFI_DEVICE_CAP_RSN)
+
+static void
+wpas_iface_get_capabilities (NMSupplicantInterface *self)
+{
+	NMSupplicantInterfacePrivate *priv = NM_SUPPLICANT_INTERFACE_GET_PRIVATE (self);
+	GValue value = {0,};
+	GHashTable *hash;
+	gboolean result;
+	guint32 caps = NM_WIFI_DEVICE_CAP_NONE;
+
+	result = _wpas_get_property(priv->iface_proxy, WPAS_DBUS_IFACE_INTERFACE, "Capabilities", &value);
+
+	if (result) {
+		hash = g_value_get_boxed (&value);
+		g_hash_table_foreach (hash, foreach_capability_cb, &caps);
+
+		/* Check for cipher support but not WPA support */
+		if (    (caps & (NM_WIFI_DEVICE_CAP_CIPHER_TKIP | NM_WIFI_DEVICE_CAP_CIPHER_CCMP))
+		    && !(caps & (NM_WIFI_DEVICE_CAP_WPA | NM_WIFI_DEVICE_CAP_RSN))) {
+			nm_warning ("%s: device supports WPA ciphers but not WPA protocol; "
+			            "WPA unavailable.", priv->dev);
+			caps &= ~WPA_CAPS;
+		}
+
+		/* Check for WPA support but not cipher support */
+		if (    (caps & (NM_WIFI_DEVICE_CAP_WPA | NM_WIFI_DEVICE_CAP_RSN))
+		    && !(caps & (NM_WIFI_DEVICE_CAP_CIPHER_TKIP | NM_WIFI_DEVICE_CAP_CIPHER_CCMP))) {
+			nm_warning ("%s: device supports WPA protocol but not WPA ciphers; "
+			            "WPA unavailable.", priv->dev);
+			caps &= ~WPA_CAPS;
+		}
+
+		priv->capabilities = caps;
+		g_value_unset (&value);
+	} else {
+		nm_warning ("could not get Capabilities property");
+	}
 }
 
 static void
@@ -858,6 +942,7 @@ nm_supplicant_interface_add_cb (DBusGProxy *proxy, DBusGProxyCall *call_id, gpoi
 		/* Interface added to the supplicant; get its initial state. */
 		wpas_iface_get_state (info->interface);
 		wpas_iface_get_scanning (info->interface);
+		wpas_iface_get_capabilities (info->interface);
 	}
 }
 
@@ -1324,6 +1409,14 @@ nm_supplicant_interface_get_state (NMSupplicantInterface * self)
 	g_return_val_if_fail (NM_IS_SUPPLICANT_INTERFACE (self), NM_SUPPLICANT_INTERFACE_STATE_DOWN);
 
 	return NM_SUPPLICANT_INTERFACE_GET_PRIVATE (self)->state;
+}
+
+guint32
+nm_supplicant_interface_get_capabilities (NMSupplicantInterface * self)
+{
+	g_return_val_if_fail (NM_IS_SUPPLICANT_INTERFACE (self), NM_DEVICE_CAP_NONE);
+
+	return NM_SUPPLICANT_INTERFACE_GET_PRIVATE (self)->capabilities;
 }
 
 guint32

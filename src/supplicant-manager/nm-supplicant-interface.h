@@ -132,6 +132,8 @@ gboolean nm_supplicant_interface_request_scan (NMSupplicantInterface * self);
 
 guint32 nm_supplicant_interface_get_state (NMSupplicantInterface * self);
 
+guint32 nm_supplicant_interface_get_capabilities (NMSupplicantInterface * self);
+
 guint32 nm_supplicant_interface_get_connection_state (NMSupplicantInterface * self);
 
 const char *nm_supplicant_interface_state_to_string (guint32 state);

@@ -401,64 +401,6 @@ out:
 	return caps;
 }
 
-#define WPA_CAPS (NM_WIFI_DEVICE_CAP_CIPHER_TKIP | \
-                  NM_WIFI_DEVICE_CAP_CIPHER_CCMP | \
-                  NM_WIFI_DEVICE_CAP_WPA | \
-                  NM_WIFI_DEVICE_CAP_RSN)
-
-static guint32
-get_wireless_capabilities (NMDeviceWifi *self,
-                           iwrange * range,
-                           guint32 data_len)
-{
-	guint32 minlen;
-	guint32 caps = NM_WIFI_DEVICE_CAP_NONE;
-	const char * iface;
-
-	g_return_val_if_fail (self != NULL, NM_WIFI_DEVICE_CAP_NONE);
-	g_return_val_if_fail (range != NULL, NM_WIFI_DEVICE_CAP_NONE);
-
-	iface = nm_device_get_iface (NM_DEVICE (self));
-
-	minlen = ((char *) &range->enc_capa) - (char *) range + sizeof (range->enc_capa);
-
-	/* All drivers should support WEP by default */
-	caps |= NM_WIFI_DEVICE_CAP_CIPHER_WEP40 | NM_WIFI_DEVICE_CAP_CIPHER_WEP104;
-
-	if ((data_len >= minlen) && range->we_version_compiled >= 18) {
-		if (range->enc_capa & IW_ENC_CAPA_CIPHER_TKIP)
-			caps |= NM_WIFI_DEVICE_CAP_CIPHER_TKIP;
-
-		if (range->enc_capa & IW_ENC_CAPA_CIPHER_CCMP)
-			caps |= NM_WIFI_DEVICE_CAP_CIPHER_CCMP;
-
-		if (range->enc_capa & IW_ENC_CAPA_WPA)
-			caps |= NM_WIFI_DEVICE_CAP_WPA;
-
-		if (range->enc_capa & IW_ENC_CAPA_WPA2)
-			caps |= NM_WIFI_DEVICE_CAP_RSN;
-
-		/* Check for cipher support but not WPA support */
-		if (    (caps & (NM_WIFI_DEVICE_CAP_CIPHER_TKIP | NM_WIFI_DEVICE_CAP_CIPHER_CCMP))
-		    && !(caps & (NM_WIFI_DEVICE_CAP_WPA | NM_WIFI_DEVICE_CAP_RSN))) {
-			nm_warning ("%s: device supports WPA ciphers but not WPA protocol; "
-			            "WPA unavailable.", iface);
-			caps &= ~WPA_CAPS;
-		}
-
-		/* Check for WPA support but not cipher support */
-		if (    (caps & (NM_WIFI_DEVICE_CAP_WPA | NM_WIFI_DEVICE_CAP_RSN))
-		    && !(caps & (NM_WIFI_DEVICE_CAP_CIPHER_TKIP | NM_WIFI_DEVICE_CAP_CIPHER_CCMP))) {
-			nm_warning ("%s: device supports WPA protocol but not WPA ciphers; "
-			            "WPA unavailable.", iface);
-			caps &= ~WPA_CAPS;
-		}
-	}
-
-	return caps;
-}
-
-
 static guint32 iw_freq_to_uint32 (struct iw_freq *freq)
 {
 	if (freq->e == 0) {
@@ -550,8 +492,10 @@ constructor (GType type,
 		         scan_capa_range->scan_capa);
 	}
 
-	/* 802.11 wireless-specific capabilities */
-	priv->capabilities = get_wireless_capabilities (self, &range, response_len);
+	/* FIXME: we could take scan capability from supplicant since there
+	 * information about that in Capabilities property, but this information
+	 * seams to be unreliable (always has the same value).
+	 */
 
 	/* Connect to the supplicant manager */
 	priv->supplicant.mgr = nm_supplicant_manager_get ();
@@ -2016,13 +1960,13 @@ set_ap_strength_from_properties (NMDeviceWifi *self,
 	GValue *value;
 	gint8 strength;
 
-	value = (GValue *) g_hash_table_lookup (properties, "quality");
+	value = (GValue *) g_hash_table_lookup (properties, "Quality");
 	qual = value ? g_value_get_int (value) : -1;
 
-	value = (GValue *) g_hash_table_lookup (properties, "level");
+	value = (GValue *) g_hash_table_lookup (properties, "Level");
 	level = value ? g_value_get_int (value) : -1;
 
-	value = (GValue *) g_hash_table_lookup (properties, "noise");
+	value = (GValue *) g_hash_table_lookup (properties, "Noise");
 	noise = value ? g_value_get_int (value) : -1;
 
 	/* Calculate and set the AP's signal quality */
@@ -2243,6 +2187,9 @@ supplicant_iface_state_cb_handler (gpointer user_data)
 	         nm_supplicant_interface_state_to_string (task->new_state));
 
 	if (task->new_state == NM_SUPPLICANT_INTERFACE_STATE_READY) {
+		/* 802.11 wireless-specific capabilities */
+		priv->capabilities = nm_supplicant_interface_get_capabilities (priv->supplicant.iface);
+
 		priv->scan_interval = SCAN_INTERVAL_MIN;
 
 		/* Request a scan to get latest results */
