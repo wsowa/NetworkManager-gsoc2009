@@ -474,10 +474,6 @@ get_wireless_capabilities (NMDeviceWifi *self,
 		}
 	}
 
-	/* Check for Access Point mode support */
-	if (priv->is_nl80211)
-		caps |= NM_WIFI_DEVICE_CAP_MODE_AP;
-
 	return caps;
 }
 
