@@ -69,10 +69,20 @@ nm_ethernet_address_is_valid (const struct ether_addr *test_addr)
 
 	if (test_addr->ether_addr_octet[0] & 1)			/* Multicast addresses */
 		return FALSE;
-	
+
 	return TRUE;
 }
 
+gboolean
+nm_ethernet_address_is_zero(const struct ether_addr *test_addr)
+{
+	guint8 zero_addr[ETH_ALEN] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+
+	if (!memcmp (test_addr->ether_addr_octet, &zero_addr, ETH_ALEN))
+		return TRUE;
+	else
+		return FALSE;
+}
 
 int
 nm_spawn_process (const char *args)

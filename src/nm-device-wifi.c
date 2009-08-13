@@ -774,16 +774,23 @@ get_active_ap (NMDeviceWifi *self,
 		          bssid.ether_addr_octet[2], bssid.ether_addr_octet[3],
 		          bssid.ether_addr_octet[4], bssid.ether_addr_octet[5]);
 	}
-	if (!nm_ethernet_address_is_valid (&bssid))
-		return NULL;
 
-	ssid = nm_device_wifi_get_ssid (self);
-	if G_UNLIKELY (ap_debug) {
-		nm_debug ("(%s) SSID: %s%s%s",
-		          iface,
-		          ssid ? "'" : "",
-		          ssid ? nm_utils_escape_ssid (ssid->data, ssid->len) : "(none)",
-		          ssid ? "'" : "");
+	/* Allow zero BSSID and SSID in AP mode */
+	if (nm_device_wifi_get_mode (self) == NM_802_11_MODE_AP)
+		ssid = priv->ssid;
+	else
+	{
+		if (!nm_ethernet_address_is_valid (&bssid))
+			return NULL;
+
+		ssid = nm_device_wifi_get_ssid (self);
+		if G_UNLIKELY (ap_debug) {
+			nm_debug ("(%s) SSID: %s%s%s",
+					  iface,
+					  ssid ? "'" : "",
+					  ssid ? nm_utils_escape_ssid (ssid->data, ssid->len) : "(none)",
+					  ssid ? "'" : "");
+		}
 	}
 
 	/* When matching hidden APs, do a second pass that ignores the SSID check,

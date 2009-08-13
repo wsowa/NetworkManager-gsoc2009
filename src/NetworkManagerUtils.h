@@ -35,6 +35,8 @@
 
 gboolean nm_ethernet_address_is_valid (const struct ether_addr *test_addr);
 
+gboolean nm_ethernet_address_is_zero (const struct ether_addr *test_addr);
+
 int nm_spawn_process (const char *args);
 
 char *nm_ether_ntop (const struct ether_addr *mac);
