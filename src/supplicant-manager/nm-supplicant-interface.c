@@ -1107,9 +1107,8 @@ static void
 remove_network_cb (DBusGProxy *proxy, DBusGProxyCall *call_id, gpointer user_data)
 {
 	GError *err = NULL;
-	guint tmp;
 
-	if (!dbus_g_proxy_end_call (proxy, call_id, &err, G_TYPE_UINT, &tmp, G_TYPE_INVALID)) {
+	if (!dbus_g_proxy_end_call (proxy, call_id, &err, G_TYPE_INVALID)) {
 		nm_warning ("Couldn't remove network from supplicant interface: %s.", err->message);
 		g_error_free (err);
 	}
@@ -1119,9 +1118,8 @@ static void
 disconnect_cb  (DBusGProxy *proxy, DBusGProxyCall *call_id, gpointer user_data)
 {
 	GError *err = NULL;
-	guint tmp;
 
-	if (!dbus_g_proxy_end_call (proxy, call_id, &err, G_TYPE_UINT, &tmp, G_TYPE_INVALID)) {
+	if (!dbus_g_proxy_end_call (proxy, call_id, &err, G_TYPE_INVALID)) {
 		nm_warning ("Couldn't disconnect supplicant interface: %s.", err->message);
 		g_error_free (err);
 	}
@@ -1214,9 +1212,8 @@ add_blob_cb (DBusGProxy *proxy, DBusGProxyCall *call_id, gpointer user_data)
 	NMSupplicantInfo *info = (NMSupplicantInfo *) user_data;
 	NMSupplicantInterfacePrivate *priv = NM_SUPPLICANT_INTERFACE_GET_PRIVATE (info->interface);
 	GError *err = NULL;
-	guint tmp;
 
-	if (!dbus_g_proxy_end_call (proxy, call_id, &err, G_TYPE_UINT, &tmp, G_TYPE_INVALID)) {
+	if (!dbus_g_proxy_end_call (proxy, call_id, &err, G_TYPE_INVALID)) {
 		nm_warning ("Couldn't add network blob: %s.", err->message);
 		emit_error_helper (info->interface, err);
 		g_error_free (err);
