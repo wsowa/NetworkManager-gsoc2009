@@ -76,6 +76,7 @@ enum {
 	STATE,             /* change in the interface's state */
 	REMOVED,           /* interface was removed by the supplicant */
 	SCANNED_AP,        /* interface saw a new access point from a scan */
+	BSS_CHANGED,       /* change of current BSS */
 	SCAN_REQ_RESULT,   /* result of a wireless scan request */
 	SCAN_RESULTS,      /* scan results returned from supplicant */
 	CONNECTION_STATE,  /* link state of the device's connection */
@@ -497,6 +498,15 @@ nm_supplicant_interface_class_init (NMSupplicantInterfaceClass *klass)
 		              g_cclosure_marshal_VOID__POINTER,
 		              G_TYPE_NONE, 1, G_TYPE_POINTER);
 
+	nm_supplicant_interface_signals[BSS_CHANGED] =
+		g_signal_new ("bss-changed",
+		              G_OBJECT_CLASS_TYPE (object_class),
+		              G_SIGNAL_RUN_LAST,
+		              G_STRUCT_OFFSET (NMSupplicantInterfaceClass, bss_changed),
+		              NULL, NULL,
+		              g_cclosure_marshal_VOID__VOID,
+		              G_TYPE_NONE, 0);
+
 	nm_supplicant_interface_signals[SCAN_REQ_RESULT] =
 		g_signal_new ("scan-req-result",
 		              G_OBJECT_CLASS_TYPE (object_class),
@@ -864,6 +874,9 @@ handle_property_changed (gpointer key, gpointer data, gpointer user_data)
 	if (!strcmp(prop_name, "Scanning")) {
 		gboolean scanning = g_value_get_boolean ((GValue *) data);
 		wpas_iface_handle_scanning (priv->iface_proxy, scanning, self);
+	}
+	else if (!strcmp(prop_name, "CurrentBSS")) {
+		g_signal_emit (self, nm_supplicant_interface_signals[BSS_CHANGED], 0);
 	}
 
 	else {

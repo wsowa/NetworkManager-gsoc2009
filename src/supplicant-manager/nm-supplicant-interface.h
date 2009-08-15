@@ -95,6 +95,9 @@ typedef struct {
 	void (*scanned_ap)       (NMSupplicantInterface * iface,
 	                          DBusMessage * message);
 
+	/* change of current BSS */
+	void (*bss_changed)      (NMSupplicantInterface * iface);
+
 	/* result of a wireless scan request */
 	void (*scan_req_result)  (NMSupplicantInterface * iface,
 	                          gboolean success);

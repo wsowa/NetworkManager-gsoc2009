@@ -126,6 +126,7 @@ typedef struct Supplicant {
 	guint iface_error_id;
 	guint iface_state_id;
 	guint iface_scanned_ap_id;
+	guint iface_bss_changed_id;
 	guint iface_scan_request_result_id;
 	guint iface_scan_results_id;
 	guint iface_con_state_id;
@@ -205,6 +206,9 @@ static void supplicant_iface_connection_state_cb (NMSupplicantInterface * iface,
 
 static void supplicant_iface_scanned_ap_cb (NMSupplicantInterface * iface,
                                             GHashTable *properties,
+                                            NMDeviceWifi * self);
+
+static void supplicant_iface_bss_changed_cb (NMSupplicantInterface * iface,
                                             NMDeviceWifi * self);
 
 static void supplicant_iface_scan_request_result_cb (NMSupplicantInterface * iface,
@@ -547,6 +551,12 @@ supplicant_interface_acquire (NMDeviceWifi *self)
 	priv->supplicant.iface_scanned_ap_id = id;
 
 	id = g_signal_connect (priv->supplicant.iface,
+						   "bss-changed",
+						   G_CALLBACK (supplicant_iface_bss_changed_cb),
+						   self);
+	priv->supplicant.iface_bss_changed_id = id;
+
+	id = g_signal_connect (priv->supplicant.iface,
 	                       "scan-req-result",
 	                       G_CALLBACK (supplicant_iface_scan_request_result_cb),
 	                       self);
@@ -644,6 +654,11 @@ supplicant_interface_release (NMDeviceWifi *self)
 	if (priv->supplicant.iface_scanned_ap_id > 0) {
 		g_signal_handler_disconnect (priv->supplicant.iface, priv->supplicant.iface_scanned_ap_id);
 		priv->supplicant.iface_scanned_ap_id = 0;
+	}
+
+	if (priv->supplicant.iface_bss_changed_id > 0) {
+		g_signal_handler_disconnect (priv->supplicant.iface, priv->supplicant.iface_bss_changed_id);
+		priv->supplicant.iface_bss_changed_id = 0;
 	}
 
 	if (priv->supplicant.iface_scan_request_result_id > 0) {
@@ -2011,6 +2026,12 @@ supplicant_iface_scanned_ap_cb (NMSupplicantInterface *iface,
 	g_object_unref (ap);
 }
 
+static void
+supplicant_iface_bss_changed_cb (NMSupplicantInterface *iface,
+                                NMDeviceWifi *self)
+{
+	nm_device_wifi_periodic_update (self);
+}
 
 static void
 cleanup_association_attempt (NMDeviceWifi *self, gboolean disconnect)
