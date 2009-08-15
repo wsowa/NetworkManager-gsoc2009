@@ -766,31 +766,38 @@ get_active_ap (NMDeviceWifi *self,
 	int i = 0;
 	gboolean ap_debug = getenv ("NM_ACTIVE_AP_DEBUG") ? TRUE : FALSE;
 
-	nm_device_wifi_get_bssid (self, &bssid);
-	if (G_UNLIKELY (ap_debug)) {
-		nm_debug ("(%s) BSSID: %02x:%02x:%02x:%02x:%02x:%02x",
-		          iface,
-		          bssid.ether_addr_octet[0], bssid.ether_addr_octet[1],
-		          bssid.ether_addr_octet[2], bssid.ether_addr_octet[3],
-		          bssid.ether_addr_octet[4], bssid.ether_addr_octet[5]);
-	}
-
-	/* Allow zero BSSID and SSID in AP mode */
+	/* If device is in AP mode use its MAC address as BSSID and don't
+	 * update SSID. Otherwise update SSID and get BSSID from device.
+	 */
 	if (nm_device_wifi_get_mode (self) == NM_802_11_MODE_AP)
+	{
+		nm_device_wifi_get_address (self, &bssid);
 		ssid = priv->ssid;
+	}
 	else
 	{
+		nm_device_wifi_get_bssid (self, &bssid);
+
 		if (!nm_ethernet_address_is_valid (&bssid))
 			return NULL;
 
 		ssid = nm_device_wifi_get_ssid (self);
-		if G_UNLIKELY (ap_debug) {
-			nm_debug ("(%s) SSID: %s%s%s",
-					  iface,
-					  ssid ? "'" : "",
-					  ssid ? nm_utils_escape_ssid (ssid->data, ssid->len) : "(none)",
-					  ssid ? "'" : "");
-		}
+	}
+
+	if (G_UNLIKELY (ap_debug)) {
+		nm_debug ("(%s) BSSID: %02x:%02x:%02x:%02x:%02x:%02x",
+				  iface,
+				  bssid.ether_addr_octet[0], bssid.ether_addr_octet[1],
+				  bssid.ether_addr_octet[2], bssid.ether_addr_octet[3],
+				  bssid.ether_addr_octet[4], bssid.ether_addr_octet[5]);
+	}
+
+	if G_UNLIKELY (ap_debug) {
+		nm_debug ("(%s) SSID: %s%s%s",
+				  iface,
+				  ssid ? "'" : "",
+				  ssid ? nm_utils_escape_ssid (ssid->data, ssid->len) : "(none)",
+				  ssid ? "'" : "");
 	}
 
 	/* When matching hidden APs, do a second pass that ignores the SSID check,
@@ -3169,8 +3176,12 @@ activation_success_handler (NMDevice *dev)
 	/* If the activate AP was fake, it probably won't have a BSSID at all.
 	 * But if activation was successful, the card will know the BSSID.  Grab
 	 * the BSSID off the card and fill in the BSSID of the activation AP.
+	 * In AP mode set the cards MAC as the BSSID.
 	 */
-	nm_device_wifi_get_bssid (self, &bssid);
+	if (nm_device_wifi_get_mode (self) == NM_802_11_MODE_AP)
+		nm_device_wifi_get_address(self, &bssid);
+	else
+		nm_device_wifi_get_bssid (self, &bssid);
 	if (!nm_ethernet_address_is_valid (nm_ap_get_address (ap)))
 		nm_ap_set_address (ap, &bssid);
 	if (!nm_ap_get_freq (ap))
