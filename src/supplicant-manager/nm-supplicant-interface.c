@@ -668,21 +668,21 @@ wpas_state_string_to_enum (const char * str_state)
 {
 	guint32 enum_state = NM_SUPPLICANT_INTERFACE_CON_STATE_DISCONNECTED;
 
-	if (!strcmp (str_state, "DISCONNECTED"))
+	if (!strcmp (str_state, "disconnected"))
 		enum_state = NM_SUPPLICANT_INTERFACE_CON_STATE_DISCONNECTED;
-	else if (!strcmp (str_state, "INACTIVE"))
+	else if (!strcmp (str_state, "inactive"))
 		enum_state = NM_SUPPLICANT_INTERFACE_CON_STATE_INACTIVE;
-	else if (!strcmp (str_state, "SCANNING"))
+	else if (!strcmp (str_state, "scanning"))
 		enum_state = NM_SUPPLICANT_INTERFACE_CON_STATE_SCANNING;
-	else if (!strcmp (str_state, "ASSOCIATING"))
+	else if (!strcmp (str_state, "associating"))
 		enum_state = NM_SUPPLICANT_INTERFACE_CON_STATE_ASSOCIATING;
-	else if (!strcmp (str_state, "ASSOCIATED"))
+	else if (!strcmp (str_state, "associated"))
 		enum_state = NM_SUPPLICANT_INTERFACE_CON_STATE_ASSOCIATED;
-	else if (!strcmp (str_state, "4WAY_HANDSHAKE"))
+	else if (!strcmp (str_state, "4way_handshake"))
 		enum_state = NM_SUPPLICANT_INTERFACE_CON_STATE_4WAY_HANDSHAKE;
-	else if (!strcmp (str_state, "GROUP_HANDSHAKE"))
+	else if (!strcmp (str_state, "group_handshake"))
 		enum_state = NM_SUPPLICANT_INTERFACE_CON_STATE_GROUP_HANDSHAKE;
-	else if (!strcmp (str_state, "COMPLETED"))
+	else if (!strcmp (str_state, "completed"))
 		enum_state = NM_SUPPLICANT_INTERFACE_CON_STATE_COMPLETED;
 
 	return enum_state;
